@@ -1,34 +1,65 @@
-import { FC } from 'react'
 import ReactDOM from 'react-dom/client'
+import Player, { DataVod } from './player'
 
-interface FunnyInputProps {
-  defaultValue?: string
-  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+let data: string | null | undefined = null
+
+let parsedData: null | DataVod = null
+
+
+const initFunc = () => {
+
+  setTimeout(() => {
+    const scriptElement = document.getElementById('asia-tech-script')
+
+    const src = scriptElement?.getAttribute('src')
+    console.log("fucking script element src is :", src)
+
+    data = scriptElement?.getAttribute('data-vod')
+
+    if (data) {
+      try {
+        parsedData = JSON.parse(data) as DataVod
+      } catch (error) {
+        parsedData = null
+      }
+    }
+  }, 100);
 }
 
-const FunnyInput: FC<FunnyInputProps> = ({ defaultValue, onChange }) => {
-  return (
-    <input
-      style={{
-        width: '10rem',
-        height: '3rem',
-        position: 'relative',
-      }}
-      defaultValue={defaultValue}
-      onChange={onChange}
-    />
-  )
+const Renderer = () => {
+  setTimeout(() => {
+    if (parsedData) {
+      const keys: Array<string> = Object.keys(parsedData)
+      if (keys.length) {
+        for (let i = 0; i < keys.length; i++) {
+          const parentElement = document.getElementById(keys[i])
+          if (parentElement) {
+            ReactDOM.createRoot(parentElement).render(<Player url={parsedData[keys[i]]} />)
+          }
+        }
+      }
+    }
+  }, 150);
 }
 
-interface RendererProps extends FunnyInputProps {
-  parentElementId: string
+const playerInit = () => {
+  initFunc()
+  Renderer()
 }
 
-const Renderer = ({ parentElementId, ...config }: RendererProps) => {
-  const parentElement: HTMLElement | null = document.getElementById(parentElementId)
-  if (parentElement) {
-    ReactDOM.createRoot(parentElement).render(<FunnyInput {...config} />)
-  }
+let oldHref = '';
+const observeUrlChange = () => {
+  const body = document.querySelector("body")
+  const observer = new MutationObserver(() => {
+    if (oldHref !== document.location.href) {
+      oldHref = document.location.href;
+      playerInit()
+    }
+  });
+  if (body) observer.observe(body, { childList: true, subtree: true });
 }
 
-export default Renderer
+window.onload = observeUrlChange
+
+
+export default playerInit
